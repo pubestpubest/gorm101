@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -14,12 +16,52 @@ func main() {
 	db := gormSetup()
 	db.AutoMigrate(&Book{})
 	fmt.Println("Migration completed")
-	//CreateBook(db, &Book{Name: "Go102", Author: "Pubest", Page: 101})
-	// cbook := GetBook(db, 1)
-	// cbook.Page = 200
-	// UpdateBook(db, cbook)
-	// fmt.Println(GetBooks(db))
-	DeleteBook(db, 2)
+
+	app := fiber.New()
+
+	app.Get("/book", func(c *fiber.Ctx) error {
+		return c.JSON(GetBooks(db))
+	})
+	app.Get("/book/:id", func(c *fiber.Ctx) error {
+		id, err := strconv.Atoi(c.Params("id"))
+		if err != nil {
+			return c.SendStatus(fiber.StatusBadRequest)
+		}
+		return c.JSON(GetBook(db, uint(id)))
+	})
+	app.Post("/book", func(c *fiber.Ctx) error {
+		var book Book
+		err := c.BodyParser(&book)
+		if err != nil {
+			return c.SendStatus(fiber.StatusBadRequest)
+		}
+		CreateBook(db, &book)
+		return c.SendString("Book created successfully")
+	})
+	app.Put("/book/:id", func(c *fiber.Ctx) error {
+		id, err := strconv.Atoi(c.Params("id"))
+		if err != nil {
+			return c.SendStatus(fiber.StatusBadRequest)
+		}
+		var book Book
+		err = c.BodyParser(&book)
+		if err != nil {
+			return c.SendStatus(fiber.StatusBadRequest)
+		}
+		book.ID = uint(id)
+		UpdateBook(db, &book)
+		return c.SendString("Book updated successfully")
+	})
+	app.Delete("book/:id", func(c *fiber.Ctx) error {
+		id, err := strconv.Atoi(c.Params("id"))
+		if err != nil {
+			return c.SendStatus(fiber.StatusBadRequest)
+		}
+		DeleteBook(db, uint(id))
+		return c.SendString("Book deleted successfully")
+	})
+
+	app.Listen(":4040")
 }
 
 func gormSetup() *gorm.DB {
@@ -58,46 +100,4 @@ func gormSetup() *gorm.DB {
 
 	log.Println("Successfully connected to database!")
 	return db
-}
-
-func CreateBook(db *gorm.DB, book *Book) {
-	result := db.Create(book)
-	if result.Error != nil {
-		log.Fatalf("Error creating book: %v", result.Error)
-	}
-	fmt.Println("Book created successfully")
-}
-
-func UpdateBook(db *gorm.DB, book *Book) {
-	result := db.Save(&book)
-	if result.Error != nil {
-		log.Fatalf("Error update book: %v", result.Error)
-	}
-	fmt.Println("Book updated successfully")
-}
-
-func GetBook(db *gorm.DB, id uint) *Book {
-	var book Book
-	result := db.First(&book, id)
-	if result.Error != nil {
-		log.Fatalf("Error finding book: %v", result.Error)
-	}
-	return &book
-}
-
-func GetBooks(db *gorm.DB) *[]Book {
-	var books []Book
-	result := db.Find(&books)
-	if result.Error != nil {
-		log.Fatalf("Error finding books: %v", result.Error)
-	}
-	return &books
-}
-
-func DeleteBook(db *gorm.DB, id uint) {
-	var book Book
-	result := db.Unscoped().Delete(&book, id)
-	if result.Error != nil {
-		log.Fatalf("Error deleting books: %v", result.Error)
-	}
 }
