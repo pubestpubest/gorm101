@@ -11,4 +11,6 @@ go get github.com/joho/godotenv     #Load .env file
 go get -u gorm.io/gorm              #GORM
 go get -u gorm.io/driver/postgres   #Postgres Driver
 go get github.com/gofiber/fiber/v2  #Fiber
+go get golang.org/x/crypto/bcrypt   #Bcrypt to 'hash' password
+go get github.com/golang-jwt/jwt/v4 #JWT
 ```

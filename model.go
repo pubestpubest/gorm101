@@ -8,3 +8,9 @@ type Book struct {
 	Author string
 	Page   uint
 }
+
+type User struct {
+	gorm.Model
+	Email    string `gorm:"unique"`
+	Password string
+}
